@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ads Earning — Mini WebApp</title>
+<style>
+  :root{
+    --bg:#0b1220; --card:#0f1724; --accent:#06b6d4; --muted:#9aa4b2;
+    --text:#e6eef6; --glass: rgba(255,255,255,0.03);
+  }
+  [data-theme="light"]{ --bg:#f5f7fa; --card:#ffffff; --accent:#0ea5a3; --muted:#6b7280; --text:#041827; }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:Inter,system-ui,Arial; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column}
+  header{position:sticky; top:0; background:var(--card); padding:12px 16px; display:flex; align-items:center; gap:12px; z-index:40; border-bottom:1px solid rgba(255,255,255,0.03)}
+  .logo{font-weight:700;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg,var(--accent),#0891b2); color:#001; box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  h1{font-size:16px;margin:0}
+  .header-controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .btn{background:var(--accent);color:#021019;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
+  .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+  .container{max-width:980px;margin:18px auto;padding:12px;width:100%}
+  nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:12px;padding:6px;display:flex;gap:6px;box-shadow:0 10px 30px rgba(2,6,23,.6);z-index:50}
+  nav button{background:transparent;border:0;color:var(--muted);padding:10px 14px;border-radius:8px;cursor:pointer}
+  nav button.active{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:var(--text); box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  section{display:none}
+  .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
+  .profile-img{width:200px;height:200px;border-radius:12px;object-fit:cover;display:block;margin:10px auto}
+  .stats-row{display:flex;gap:12px;justify-content:space-between;font-weight:700}
+  .small-stats{display:flex;gap:10px;justify-content:space-between;margin-top:12px}
+  .tasks-list,.history-list{display:grid;gap:10px;margin-top:8px}
+  .task-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.01)}
+  .ad-area{margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.01)}
+  #ad-iframe{width:100%;height:360px;border-radius:10px;border:0;background:#000}
+  .floating-support{position:fixed;right:18px;bottom:88px;background:linear-gradient(90deg,var(--accent),#0891b2);color:#022;padding:12px 14px;border-radius:999px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:60;cursor:pointer;font-weight:700}
+  .tiny{font-size:13px;color:var(--muted)}
+  .muted{color:var(--muted)}
+  .center{text-align:center}
+  /* responsive */
+  @media(max-width:760px){
+    .profile-img{width:160px;height:160px}
+    .stats-row{flex-direction:column;align-items:center;gap:6px}
+    #ad-iframe{height:260px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Ads</div>
+  <div>
+    <h1>Ads Earning Mini WebApp</h1>
+    <div class="tiny muted">Telegram Mini Web style — demo</div>
+  </div>
+
+  <div class="header-controls">
+    <button id="theme-toggle" class="ghost">Dark/Light</button>
+    <button id="daily-bonus" class="ghost" title="Daily Bonus">Daily Bonus</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- HOME -->
+  <section id="home" style="display:block">
+    <img id="home-pic" class="profile-img" src="https://i.postimg.cc/KcT2rh90/IMG-20251128-083215.jpg" alt="Profile">
+    <div class="card center">
+      <div style="font-size:18px;font-weight:800" id="home-name">Guest User</div>
+      <div style="font-size:26px;margin-top:8px" id="home-balance">0</div>
+      <div class="tiny muted">Points</div>
+    </div>
+
+    <div class="card small-stats">
+      <div>Lifetime Ads: <span id="home-lifetime">0</span></div>
+      <div>Today's Ads: <span id="home-today">0</span></div>
+      <div>Daily Limit: <span id="daily-limit">30</span></div>
+    </div>
+  </section>
+
+  <!-- TASKS -->
+  <section id="tasks">
+    <h3>Tasks — Join Channels</h3>
+    <div class="tasks-list" id="tasks-list"></div>
+  </section>
+
+  <!-- ADS -->
+  <section id="ads">
+    <div class="card center">
+      <div style="font-weight:800;font-size:18px">Balance</div>
+      <div style="font-size:28px;margin-top:6px" id="ads-balance">0</div>
+      <div class="tiny muted">Points</div>
+
+      <div class="small-stats" style="width:100%;margin-top:12px">
+        <div>Lifetime: <span id="ads-lifetime">0</span></div>
+        <div>Today: <span id="ads-today">0</span></div>
+      </div>
+
+      <button id="start-ads" class="btn" style="margin-top:16px;font-size:20px;padding:14px 18px;width:90%">Start Watching Ads</button>
+
+      <!-- Inline ad area (not modal) — Fullscreen secure mode will be used -->
+      <div id="ad-area" class="ad-area" style="display:none;margin-top:12px">
+        <div id="ad-timer" style="font-weight:800;margin-bottom:8px">Ad ends in <span id="ad-countdown">0</span>s</div>
+        <iframe id="ad-iframe" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+        <div style="margin-top:10px">
+          <button id="ad-stop" class="ghost">Stop</button>
+        </div>
+        <div class="tiny muted" style="margin-top:8px">* Fullscreen required. Exit fullscreen or switch tab → ad cancelled (no points).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WITHDRAW -->
+  <section id="withdraw">
+    <div class="card">
+      <h3>Withdraw</h3>
+      <div style="font-size:18px">Balance: <b id="withdraw-balance">0</b></div>
+      <div style="margin-top:10px">
+        <input id="withdraw-id" placeholder="Your Binance ID" style="width:100%;padding:10px;border-radius:8px;border:0;margin-bottom:8px;background:rgba(255,255,255,0.02);color:inherit">
+        <input id="withdraw-amount" placeholder="Amount (min 40)" style="width:100%;padding:10px;border-radius:8px;border:0;margin-bottom:8px;background:rgba(255,255,255,0.02);color:inherit">
+        <button id="submit-withdraw" class="btn" style="width:100%">Submit Withdraw</button>
+      </div>
+      <div style="margin-top:12px">
+        <h4>Withdraw History</h4>
+        <div id="withdraw-history" class="history-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="profile">
+    <img id="profile-pic" class="profile-img" src="https://i.postimg.cc/KcT2rh90/IMG-20251128-083215.jpg" alt="Profile">
+    <div class="card center">
+      <div style="font-weight:800">Balance</div>
+      <div style="font-size:28px;margin-top:6px" id="profile-balance">0</div>
+      <div class="small-stats" style="width:100%;margin-top:12px">
+        <div>Lifetime: <span id="profile-lifetime">0</span></div>
+        <div>Today: <span id="profile-today">0</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Earn History (Ads watched)</h4>
+      <div id="earn-history" class="history-list"></div>
+    </div>
+
+  </section>
+</div>
+
+<!-- floating support -->
+<div id="support" class="floating-support">Live Support</div>
+
+<!-- bottom nav -->
+<nav>
+  <button class="active" data-tab="home">Home</button>
+  <button data-tab="tasks">Tasks</button>
+  <button data-tab="ads">Ads</button>
+  <button data-tab="withdraw">Withdraw</button>
+  <button data-tab="profile">Profile</button>
+</nav>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const BOT_TOKEN = "<YOUR_BOT_TOKEN>";           // replace with your bot token
+const CHANNEL_ID = "<CHANNEL_ID_OR_CHAT_ID>";   // replace with admin chat id or channel id (e.g. -1001234567890)
+const SUPPORT_LINK = "https://t.me/Robin066";   // live support link (change if needed)
+
+const AD_LIMIT_PER_DAY = 30; // daily ad limit
+const AD_POINTS = 10;        // points per ad
+
+// Ad list — each ad can define its own duration in seconds
+const adLinks = [
+  { url: "https://adexora.my.id/dl/ahQIBgo5sx3pK", duration: 15 },
+  // add more ad objects here, e.g. {url: "https://adexora.my.id/dl/other", duration: 20}
+];
+
+/* ---------------- STORAGE & STATE ---------------- */
+const STORAGE_KEY = "ads_demo_state_v2";
+
+function nowDateStr(){ // YYYY-MM-DD
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){
+    const s = {
+      name: "Guest User",
+      balance: 0,
+      lifetimeAds: 0,
+      todayDate: nowDateStr(),
+      todayAds: 0,
+      tasksDone: {},
+      withdraws: [],
+      earnHistory: [] // {adUrl, timeISO, points}
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    return s;
+  }
+  const s = JSON.parse(raw);
+  // reset todayAds if date changed
+  if(s.todayDate !== nowDateStr()){
+    s.todayDate = nowDateStr();
+    s.todayAds = 0;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  }
+  return s;
+}
+function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+let state = loadState();
+
+/* --------------- THEME ---------------- */
+const themeToggle = document.getElementById("theme-toggle");
+const userTheme = localStorage.getItem("ads_theme") || "dark";
+if(userTheme === "light") document.documentElement.setAttribute("data-theme","light");
+themeToggle.addEventListener("click", ()=>{
+  const cur = document.documentElement.getAttribute("data-theme");
+  if(cur === "light"){
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("ads_theme","dark");
+  } else {
+    document.documentElement.setAttribute("data-theme","light");
+    localStorage.setItem("ads_theme","light");
+  }
+});
+
+/* --------------- UI HELPERS & RENDER ---------------- */
+const tabs = document.querySelectorAll("nav button");
+tabs.forEach(btn=>{
+  btn.addEventListener("click", ()=> {
+    tabs.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const target = btn.dataset.tab;
+    document.querySelectorAll("section").forEach(s=> s.style.display = s.id === target ? "block" : "none");
+    render();
+  });
+});
+
+function render(){
+  state = loadState();
+  // Home
+  document.getElementById("home-name").textContent = state.name || "Guest User";
+  document.getElementById("home-balance").textContent = state.balance;
+  document.getElementById("home-lifetime").textContent = state.lifetimeAds;
+  document.getElementById("home-today").textContent = state.todayAds;
+  document.getElementById("daily-limit").textContent = AD_LIMIT_PER_DAY;
+
+  // Ads
+  document.getElementById("ads-balance").textContent = state.balance;
+  document.getElementById("ads-lifetime").textContent = state.lifetimeAds;
+  document.getElementById("ads-today").textContent = state.todayAds;
+
+  // Withdraw
+  document.getElementById("withdraw-balance").textContent = state.balance;
+  // Profile
+  document.getElementById("profile-balance").textContent = state.balance;
+  document.getElementById("profile-lifetime").textContent = state.lifetimeAds;
+  document.getElementById("profile-today").textContent = state.todayAds;
+
+  // tasks list
+  const tasksList = document.getElementById("tasks-list");
+  tasksList.innerHTML = "";
+  const tasksArr = [
+    { name: "𝗚𝗟𝗢𝗕𝗔𝗟 𝗧𝗔𝗦𝗡𝗘𝗧 𝗢𝗙𝗙𝗘𝗥𝗦", url: "https://t.me/GlobalTasnetOffers" },
+    { name: "𝐏𝐫𝐞𝐦𝐢𝘂𝐦 𝐒𝐭𝐨𝐫𝐞 𝐁𝐃", url: "https://t.me/PremiumStore_Pro" },
+    { name: "𝗣𝗿𝗼𝗺𝗽𝘁 𝗚𝗮𝗹𝗮𝘅𝘆", url: "https://t.me/PromptGalaxyBD" }
+  ];
+  tasksArr.forEach((t,i)=>{
+    const done = state.tasksDone[t.url];
+    const div = document.createElement("div");
+    div.className = "task-item";
+    div.innerHTML = `<div><strong>${t.name}</strong><div class="muted">${t.url}</div></div>
+      <div>
+        <a href="${t.url}" target="_blank" class="ghost">Open</a>
+        <button class="btn" ${done ? "disabled" : ""} onclick="verifyTask(${i})">${done ? "Done" : "Verify"}</button>
+      </div>`;
+    tasksList.appendChild(div);
+  });
+
+  // withdraw history
+  const wh = document.getElementById("withdraw-history");
+  wh.innerHTML = "";
+  state.withdraws.slice().reverse().forEach((w, i)=>{
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `ID: ${escapeHtml(w.id)}<br>Amount: ${w.amount} points<br>Status: <strong>${w.status}</strong><br><small class="muted">${new Date(w.time).toLocaleString()}</small>`;
+    wh.appendChild(div);
+  });
+
+  // earn history
+  const eh = document.getElementById("earn-history");
+  eh.innerHTML = "";
+  state.earnHistory.slice().reverse().forEach(h=>{
+    const d = new Date(h.time);
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `Ad: ${escapeHtml(h.adUrl)}<br>Points: +${h.points} <span class="muted">• ${d.toLocaleString()}</span>`;
+    eh.appendChild(div);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+/* --------------- TASK VERIFY ---------------- */
+window.verifyTask = function(i){
+  const tasksArr = [
+    { name: "𝗚𝗟𝗢𝗕𝗔𝗟 𝗧𝗔𝗦𝗡𝗘𝗧 𝗢𝗙𝗙𝗘𝗥𝗦", url: "https://t.me/GlobalTasnetOffers" },
+    { name: "𝐏𝐫𝐞𝘮𝐢𝐮𝐦 𝐒𝐭𝐨𝐫𝐞 𝐁𝐃", url: "https://t.me/PremiumStore_Pro" },
+    { name: "𝗣𝗿𝗼𝗺𝗽𝘁 𝗚𝗮𝗹𝗮𝘅𝘆", url: "https://t.me/PromptGalaxyBD" }
+  ];
+  const s = loadState();
+  const t = tasksArr[i];
+  if(confirm("আপনি কি চ্যানেলটিতে জয়েন করেছেন?")){
+    if(!s.tasksDone) s.tasksDone = {};
+    if(!s.tasksDone[t.url]){
+      s.tasksDone[t.url] = true;
+      s.balance += AD_POINTS;
+      s.lifetimeAds += 1;
+      s.todayAds = (s.todayAds || 0) + 1;
+      s.earnHistory.push({adUrl: t.url, time: new Date().toISOString(), points: AD_POINTS});
+      saveState(s);
+      render();
+      alert("+10 Points Added for channel join");
+    } else alert("Already done");
+  }
+};
+
+/* --------------- DAILY BONUS ---------------- */
+document.getElementById("daily-bonus").addEventListener("click", ()=>{
+  const key = "ads_daily_claim_" + nowDateStr();
+  if(localStorage.getItem(key)){
+    alert("You already claimed today's bonus.");
+    return;
+  }
+  const s = loadState();
+  const bonus = 50;
+  s.balance += bonus;
+  s.earnHistory.push({adUrl: "Daily Bonus", time: new Date().toISOString(), points: bonus});
+  saveState(s);
+  localStorage.setItem(key,"1");
+  render();
+  alert(`Daily bonus +${bonus} points added`);
+});
+
+/* --------------- LIVE SUPPORT ---------------- */
+document.getElementById("support").addEventListener("click", ()=>{
+  window.open(SUPPORT_LINK, "_blank");
+});
+
+/* --------------- AD LOGIC (Auto loop + Fullscreen secure + Anti-cheat + daily limit) ---------------- */
+const startBtn = document.getElementById("start-ads");
+const adArea = document.getElementById("ad-area");
+const adIframe = document.getElementById("ad-iframe");
+const adCountdownEl = document.getElementById("ad-countdown");
+const adTimerEl = document.getElementById("ad-timer");
+const adStop = document.getElementById("ad-stop");
+
+let currentAdIndex = 0;
+let adTimer = null;
+let remaining = 0;
+let adInProgress = false;
+let adStartedAt = 0;
+let adRequiresFullscreen = true;
+
+// Prevent cheat flags
+let cheated = false;
+
+startBtn.addEventListener("click", ()=>{
+  const s = loadState();
+  if((s.todayAds || 0) >= AD_LIMIT_PER_DAY){
+    alert(`Daily ad limit reached (${AD_LIMIT_PER_DAY})`);
+    return;
+  }
+  currentAdIndex = 0;
+  startAdLoop();
+  startBtn.disabled = true;
+});
+
+function startAdLoop(){
+  adArea.style.display = "block";
+  cheated = false;
+  openAd(currentAdIndex);
+}
+
+function openAd(index){
+  clearInterval(adTimer);
+  const ad = adLinks[index];
+  remaining = ad.duration;
+  adCountdownEl.textContent = remaining;
+  adIframe.src = ad.url;
+  adInProgress = true;
+  adStartedAt = Date.now();
+  cheated = false;
+
+  // Request fullscreen for secure viewing
+  requestIframeFullscreen(adIframe).then(fsGranted=>{
+    if(!fsGranted){
+      // If <!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ads Earning — Final WebApp</title>
+<style>
+  :root{
+    --bg:#0b1220; --card:#0f1724; --accent:#06b6d4; --muted:#9aa4b2;
+    --text:#e6eef6;
+  }
+  [data-theme="light"]{ --bg:#f5f7fa; --card:#ffffff; --accent:#0ea5a3; --muted:#6b7280; --text:#041827; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+  header{position:sticky;top:0;background:var(--card);padding:12px 16px;display:flex;align-items:center;gap:12px;z-index:40;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .logo{font-weight:700;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg,var(--accent),#0891b2);color:#001}
+  h1{font-size:16px;margin:0}
+  .header-controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .btn{background:var(--accent);color:#021019;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
+  .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+  .container{max-width:980px;margin:18px auto;padding:12px;width:100%}
+  nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:12px;padding:6px;display:flex;gap:6px;box-shadow:0 10px 30px rgba(2,6,23,.6);z-index:50}
+  nav button{background:transparent;border:0;color:var(--muted);padding:10px 14px;border-radius:8px;cursor:pointer}
+  nav button.active{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:var(--text); box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  section{display:none}
+  .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
+  .profile-img{width:220px;height:220px;border-radius:12px;object-fit:cover;display:block;margin:10px auto}
+  .stats-row{display:flex;gap:12px;justify-content:space-between;font-weight:700}
+  .small-stats{display:flex;gap:10px;justify-content:space-between;margin-top:12px}
+  .tasks-list,.history-list{display:grid;gap:10px;margin-top:8px}
+  .task-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.01)}
+  .ad-area{margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.01)}
+  #ad-iframe{width:100%;height:420px;border-radius:10px;border:0;background:#000}
+  .floating-support{position:fixed;right:18px;bottom:88px;background:linear-gradient(90deg,var(--accent),#0891b2);color:#022;padding:12px 14px;border-radius:999px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:60;cursor:pointer;font-weight:700}
+  .tiny{font-size:13px;color:var(--muted)}
+  .muted{color:var(--muted)}
+  .center{text-align:center}
+  .hidden{display:none}
+  @media(max-width:820px){
+    .profile-img{width:160px;height:160px}
+    #ad-iframe{height:300px}
+    .stats-row{flex-direction:column;align-items:center}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Ads</div>
+  <div>
+    <h1>Ads Earning — Final</h1>
+    <div class="tiny muted">Demo: integrate server/bot for production</div>
+  </div>
+
+  <div class="header-controls">
+    <button id="theme-toggle" class="ghost" title="Toggle theme">Dark/Light</button>
+    <button id="daily-bonus" class="ghost" title="Daily bonus">Daily Bonus</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- HOME -->
+  <section id="home" style="display:block">
+    <img id="home-pic" class="profile-img" src="https://i.postimg.cc/KcT2rh90/IMG-20251128-083215.jpg" alt="Profile">
+    <div class="card center">
+      <div style="font-size:18px;font-weight:800" id="home-name">Guest User</div>
+      <div style="font-size:26px;margin-top:8px" id="home-balance">0</div>
+      <div class="tiny muted">Points</div>
+    </div>
+
+    <div class="card small-stats">
+      <div>Lifetime Ads: <span id="home-lifetime">0</span></div>
+      <div>Today's Ads: <span id="home-today">0</span></div>
+      <div>Daily Limit: <span id="daily-limit">30</span></div>
+    </div>
+  </section>
+
+  <!-- TASKS -->
+  <section id="tasks">
+    <h3>Tasks — Join Channels</h3>
+    <div class="tasks-list" id="tasks-list"></div>
+  </section>
+
+  <!-- ADS -->
+  <section id="ads">
+    <div class="card center">
+      <div style="font-weight:800;font-size:18px">Balance</div>
+      <div style="font-size:28px;margin-top:6px" id="ads-balance">0</div>
+      <div class="tiny muted">Points</div>
+
+      <div class="small-stats" style="width:100%;margin-top:12px">
+        <div>Lifetime: <span id="ads-lifetime">0</span></div>
+        <div>Today: <span id="ads-today">0</span></div>
+      </div>
+
+      <button id="start-ads" class="btn" style="margin-top:16px;font-size:20px;padding:14px 18px;width:92%">Start Watching Ads</button>
+
+      <!-- Inline ad area -->
+      <div id="ad-area" class="ad-area hidden" style="margin-top:12px">
+        <div id="ad-timer" style="font-weight:800;margin-bottom:8px">Ad ends in <span id="ad-countdown">0</span>s</div>
+        <iframe id="ad-iframe" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+        <div style="margin-top:10px">
+          <button id="ad-stop" class="ghost">Stop</button>
+        </div>
+        <div class="tiny muted" style="margin-top:8px">* Fullscreen required. Exit fullscreen or switch tab → ad cancelled (no points).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WITHDRAW -->
+  <section id="withdraw">
+    <div class="card">
+      <h3>Withdraw</h3>
+      <div style="font-size:18px">Balance: <b id="withdraw-balance">0</b></div>
+      <div style="margin-top:10px">
+        <input id="withdraw-id" placeholder="Your Binance ID" style="width:100%;padding:10px;border-radius:8px;border:0;margin-bottom:8px;background:rgba(255,255,255,0.02);color:inherit">
+        <input id="withdraw-amount" placeholder="Amount (min 40)" style="width:100%;padding:10px;border-radius:8px;border:0;margin-bottom:8px;background:rgba(255,255,255,0.02);color:inherit">
+        <button id="submit-withdraw" class="btn" style="width:100%">Submit Withdraw</button>
+      </div>
+      <div style="margin-top:12px">
+        <h4>Withdraw History</h4>
+        <div id="withdraw-history" class="history-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="profile">
+    <img id="profile-pic" class="profile-img" src="https://i.postimg.cc/KcT2rh90/IMG-20251128-083215.jpg" alt="Profile">
+    <div class="card center">
+      <div style="font-weight:800">Balance</div>
+      <div style="font-size:28px;margin-top:6px" id="profile-balance">0</div>
+      <div class="small-stats" style="width:100%;margin-top:12px">
+        <div>Lifetime: <span id="profile-lifetime">0</span></div>
+        <div>Today: <span id="profile-today">0</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Earn History (Ads watched)</h4>
+      <div id="earn-history" class="history-list"></div>
+    </div>
+  </section>
+</div>
+
+<!-- floating support -->
+<div id="support" class="floating-support">Live Support</div>
+
+<!-- bottom nav -->
+<nav>
+  <button class="active" data-tab="home">Home</button>
+  <button data-tab="tasks">Tasks</button>
+  <button data-tab="ads">Ads</button>
+  <button data-tab="withdraw">Withdraw</button>
+  <button data-tab="profile">Profile</button>
+</nav>
+
+<script>
+/* ==================== CONFIG - customize ====================
+ * Put your Telegram bot token & channel/chat id here to enable
+ * automatic withdraw posting via Bot API. If you prefer not to
+ * put token here, the code will open a share link as fallback.
+ *
+ * Example CHANNEL_ID for channels: -1001234567890
+ */
+const BOT_TOKEN = "8099823051:AAFI4MooF5_NBPQ7WfUriaeSJdjP-JS-u8A";           // replace with bot token (or keep placeholder)
+const CHANNEL_ID = "-1002636143207";   // replace with admin channel/chat id
+const SUPPORT_LINK = "https://t.me/Robin_Boss_OP";   // live support link
+const AD_LIMIT_PER_DAY = 30;
+const AD_POINTS = 10;
+
+// Adexora links — add/remove as you like. Each item needs `url` and `duration` (sec)
+const adLinks = [
+  { url: "https://adexora.my.id/dl/ahQIBgo5sx3pK", duration: 15 },
+  // add more ad links, for example:
+  // { url: "https://adexora.my.id/dl/TeInTe8vMEIO", duration: 20 },
+];
+
+/* ==================== STORAGE & STATE ==================== */
+const STORAGE_KEY = "ads_final_state_v1";
+function nowDateStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){
+    const s = {
+      name: "Guest User",
+      balance: 0,
+      lifetimeAds: 0,
+      todayDate: nowDateStr(),
+      todayAds: 0,
+      tasksDone: {},
+      withdraws: [],
+      earnHistory: []
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    return s;
+  }
+  const s = JSON.parse(raw);
+  if(s.todayDate !== nowDateStr()){
+    s.todayDate = nowDateStr();
+    s.todayAds = 0;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  }
+  return s;
+}
+function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+let state = loadState();
+
+/* ==================== THEME ==================== */
+const themeToggle = document.getElementById("theme-toggle");
+const savedTheme = localStorage.getItem("ads_theme") || "dark";
+if(savedTheme === "light") document.documentElement.setAttribute("data-theme","light");
+themeToggle.addEventListener("click", ()=>{
+  if(document.documentElement.getAttribute("data-theme") === "light"){
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("ads_theme","dark");
+  } else {
+    document.documentElement.setAttribute("data-theme","light");
+    localStorage.setItem("ads_theme","light");
+  }
+});
+
+/* ==================== UI & RENDER ==================== */
+const tabs = document.querySelectorAll("nav button");
+tabs.forEach(btn=>{
+  btn.addEventListener("click", ()=> {
+    tabs.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const target = btn.dataset.tab;
+    document.querySelectorAll("section").forEach(s=> s.style.display = s.id === target ? "block" : "none");
+    render();
+  });
+});
+
+function render(){
+  state = loadState();
+  // home
+  document.getElementById("home-name").textContent = state.name || "Guest User";
+  document.getElementById("home-balance").textContent = state.balance;
+  document.getElementById("home-lifetime").textContent = state.lifetimeAds;
+  document.getElementById("home-today").textContent = state.todayAds;
+  document.getElementById("daily-limit").textContent = AD_LIMIT_PER_DAY;
+
+  // ads
+  document.getElementById("ads-balance").textContent = state.balance;
+  document.getElementById("ads-lifetime").textContent = state.lifetimeAds;
+  document.getElementById("ads-today").textContent = state.todayAds;
+
+  // withdraw
+  document.getElementById("withdraw-balance").textContent = state.balance;
+
+  // profile
+  document.getElementById("profile-balance").textContent = state.balance;
+  document.getElementById("profile-lifetime").textContent = state.lifetimeAds;
+  document.getElementById("profile-today").textContent = state.todayAds;
+
+  // tasks list
+  const tasksList = document.getElementById("tasks-list");
+  tasksList.innerHTML = "";
+  const tasksArr = [
+    { name: "𝗚𝗟𝗢𝗕𝗔𝗟 𝗧𝗔𝗦𝗡𝗘𝗧 𝗢𝗙𝗙𝗘𝗥𝗦", url: "https://t.me/GlobalTasnetOffers" },
+    { name: "𝐏𝐫𝐞𝗺𝗶𝘂𝗺 𝐒𝐭𝐨𝐫𝐞 𝐁𝐃", url: "https://t.me/PremiumStore_Pro" },
+    { name: "𝗣𝗿𝗼𝗺𝗽𝘁 𝗚𝗮𝗹𝗮𝘅𝘆", url: "https://t.me/PromptGalaxyBD" }
+  ];
+  tasksArr.forEach((t,i)=>{
+    const done = state.tasksDone[t.url];
+    const div = document.createElement("div");
+    div.className = "task-item";
+    div.innerHTML = `<div><strong>${t.name}</strong><div class="muted">${t.url}</div></div>
+      <div>
+        <a href="${t.url}" target="_blank" class="ghost">Open</a>
+        <button class="btn" ${done ? "disabled" : ""} onclick="verifyTask(${i})">${done ? "Done" : "Verify"}</button>
+      </div>`;
+    tasksList.appendChild(div);
+  });
+
+  // withdraw history
+  const wh = document.getElementById("withdraw-history");
+  wh.innerHTML = "";
+  state.withdraws.slice().reverse().forEach(w=>{
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `ID: ${escapeHtml(w.id)}<br>Amount: ${w.amount} points<br>Status: <strong>${w.status}</strong><br><small class="muted">${new Date(w.time).toLocaleString()}</small>`;
+    wh.appendChild(div);
+  });
+
+  // earn history
+  const eh = document.getElementById("earn-history");
+  eh.innerHTML = "";
+  state.earnHistory.slice().reverse().forEach(h=>{
+    const d = new Date(h.time);
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `Ad: ${escapeHtml(h.adUrl)}<br>Points: +${h.points} <span class="muted">• ${d.toLocaleString()}</span>`;
+    eh.appendChild(div);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+/* ==================== TASK VERIFY ==================== */
+window.verifyTask = function(i){
+  const tasksArr = [
+    { name: "𝗚𝗟𝗢𝗕𝗔𝗟 𝗧𝗔𝗦𝗡𝗘𝗧 𝗢𝗙𝗙𝗘𝗥𝗦", url: "https://t.me/GlobalTasnetOffers" },
+    { name: "𝐏𝐫𝐞𝗺𝗶𝘂𝗺 𝐒𝐭𝐨𝐫𝐞 𝐁𝐃", url: "https://t.me/PremiumStore_Pro" },
+    { name: "𝗣𝗿𝗼𝗺𝗽𝘁 𝗚𝗮𝗹𝗮𝘅𝘆", url: "https://t.me/PromptGalaxyBD" }
+  ];
+  const s = loadState();
+  const t = tasksArr[i];
+  if(confirm("আপনি কি চ্যানেলটিতে জয়েন করেছেন?")){
+    if(!s.tasksDone) s.tasksDone = {};
+    if(!s.tasksDone[t.url]){
+      s.tasksDone[t.url] = true;
+      s.balance += AD_POINTS;
+      s.lifetimeAds += 1;
+      s.todayAds = (s.todayAds || 0) + 1;
+      s.earnHistory.push({adUrl: t.url, time: new Date().toISOString(), points: AD_POINTS});
+      saveState(s);
+      render();
+      alert("+10 Points Added for channel join");
+    } else alert("Already done");
+  }
+};
+
+/* ==================== DAILY BONUS ==================== */
+document.getElementById("daily-bonus").addEventListener("click", ()=>{
+  const key = "ads_daily_claim_" + nowDateStr();
+  if(localStorage.getItem(key)){
+    alert("You already claimed today's bonus.");
+    return;
+  }
+  const s = loadState();
+  const bonus = 50;
+  s.balance += bonus;
+  s.earnHistory.push({adUrl: "Daily Bonus", time: new Date().toISOString(), points: bonus});
+  saveState(s);
+  localStorage.setItem(key,"1");
+  render();
+  alert(`Daily bonus +${bonus} points added`);
+});
+
+/* ==================== LIVE SUPPORT ==================== */
+document.getElementById("support").addEventListener("click", ()=>{
+  window.open(SUPPORT_LINK, "_blank");
+});
+
+/* ==================== AD LOGIC: Auto loop, fullscreen secure, anti-cheat, daily limit ==================== */
+const startBtn = document.getElementById("start-ads");
+const adArea = document.getElementById("ad-area");
+const adIframe = document.getElementById("ad-iframe");
+const adCountdownEl = document.getElementById("ad-countdown");
+const adTimerText = document.getElementById("ad-timer");
+const adStop = document.getElementById("ad-stop");
+
+let currentAdIndex = 0;
+let adTimer = null;
+let remaining = 0;
+let adInProgress = false;
+let adStartedAt = 0;
+let cheated = false;
+let adRequiresFullscreen = true;
+
+startBtn.addEventListener("click", ()=>{
+  const s = loadState();
+  if((s.todayAds || 0) >= AD_LIMIT_PER_DAY){
+    alert(`Daily ad limit reached (${AD_LIMIT_PER_DAY})`);
+    return;
+  }
+  currentAdIndex = 0;
+  startBtn.disabled = true;
+  startAdLoop();
+});
+
+function startAdLoop(){
+  adArea.classList.remove("hidden");
+  cheated = false;
+  openAd(currentAdIndex);
+}
+
+function openAd(index){
+  clearInterval(adTimer);
+  const ad = adLinks[index];
+  remaining = ad.duration || 15;
+  adCountdownEl.textContent = remaining;
+  adTimerText.querySelector('span').textContent = remaining;
+  adIframe.src = ad.url;
+  adInProgress = true;
+  adStartedAt = Date.now();
+  cheated = false;
+
+  // Request fullscreen on ad-area for better cross-browser support
+  requestFullscreenOn(adArea).then(granted=>{
+    if(!granted){
+      alert("Fullscreen is required for secure ad viewing. Ad cancelled.");
+      cancelAd();
+      return;
+    }
+    // begin timer
+    adTimer = setInterval(()=>{
+      // anti-cheat: visibility / focus checks
+      if(document.visibilityState === "hidden" || document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus())){
+        cheated = true;
+        cancelAd();
+        alert("You switched tab or minimized — ad cancelled.");
+        return;
+      }
+      remaining--;
+      adCountdownEl.textContent = remaining;
+      adTimerText.querySelector('span').textContent = remaining;
+      if(remaining <= 0){
+        clearInterval(adTimer);
+        completeAd(index);
+      }
+    },1000);
+  });
+}
+
+function completeAd(index){
+  // Check fullscreen still active
+  if(adRequiresFullscreen && !isElementInFullscreen(adArea)){
+    alert("You exited fullscreen — ad cancelled, no points awarded.");
+    cancelAd();
+    return;
+  }
+  if(cheated){
+    alert("Ad invalidated due to navigation/cheat.");
+    cancelAd();
+    return;
+  }
+  // award points
+  const s = loadState();
+  s.balance += AD_POINTS;
+  s.lifetimeAds += 1;
+  s.todayAds = (s.todayAds || 0) + 1;
+  s.earnHistory = s.earnHistory || [];
+  s.earnHistory.push({adUrl: adLinks[index].url, time: new Date().toISOString(), points: AD_POINTS});
+  saveState(s);
+  render();
+
+  // next ad auto
+  currentAdIndex++;
+  if(s.todayAds >= AD_LIMIT_PER_DAY){
+    alert("Daily ad limit reached — stopping.");
+    stopAds();
+    return;
+  }
+  if(currentAdIndex >= adLinks.length){
+    // loop from start
+    currentAdIndex = 0;
+  }
+  openAd(currentAdIndex);
+}
+
+function cancelAd(){
+  clearInterval(adTimer);
+  adInProgress = false;
+  exitAnyFullscreen();
+  adIframe.src = "about:blank";
+  adArea.classList.add("hidden");
+  startBtn.disabled = false;
+}
+
+// stop button
+adStop.addEventListener("click", ()=>{
+  if(adInProgress){
+    if(confirm("Stop watching ads? You will not receive points for this ad.")){
+      cancelAd();
+    }
+  }
+});
+
+function stopAds(){
+  clearInterval(adTimer);
+  adInProgress = false;
+  adArea.classList.add("hidden");
+  adIframe.src = "about:blank";
+  startBtn.disabled = false;
+  exitAnyFullscreen();
+}
+
+/* Fullscreen helpers */
+function requestFullscreenOn(el){
+  return new Promise((resolve)=>{
+    try {
+      if(el.requestFullscreen){
+        el.requestFullscreen().then(()=> resolve(true)).catch(()=> resolve(false));
+      } else if(el.webkitRequestFullscreen){
+        el.webkitRequestFullscreen();
+        resolve(true);
+      } else resolve(false);
+    } catch(e){ resolve(false); }
+  });
+}
+function isElementInFullscreen(el){
+  const fs = document.fullscreenElement || document.webkitFullscreenElement || null;
+  return fs === el;
+}
+function exitAnyFullscreen(){
+  if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+}
+
+/* Anti-cheat: visibility change & blur */
+document.addEventListener("visibilitychange", ()=>{
+  if(adInProgress && document.visibilityState === "hidden"){
+    cheated = true;
+    cancelAd();
+    alert("You switched tab or minimized — ad cancelled.");
+  }
+});
+window.addEventListener("blur", ()=>{
+  if(adInProgress){
+    cheated = true;
+    cancelAd();
+    alert("Window lost focus — ad cancelled.");
+  }
+});
+
+/* ==================== Withdraw: auto send to Telegram bot ==================== */
+document.getElementById("submit-withdraw").addEventListener("click", ()=>{
+  const id = document.getElementById("withdraw-id").value.trim();
+  const amount = Number(document.getElementById("withdraw-amount").value);
+  if(!id || !amount){ alert("Fill all fields"); return; }
+  if(amount < 40){ alert("Minimum withdraw 40 points"); return; }
+  const s = loadState();
+  if(amount > s.balance){ alert("Not enough balance"); return; }
+
+  s.balance -= amount;
+  const w = { id, amount, status: "Pending", time: Date.now() };
+  s.withdraws.push(w);
+  saveState(s);
+  render();
+
+  // If BOT_TOKEN & CHANNEL_ID are provided and not placeholder, send via bot API
+  if(BOT_TOKEN && CHANNEL_ID && BOT_TOKEN !== "<YOUR_BOT_TOKEN>" && CHANNEL_ID !== "<CHANNEL_ID_OR_CHAT_ID>"){
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: CHANNEL_ID, text: `New Withdraw\nID: ${id}\nAmount: ${amount}` })
+    }).then(r=>r.json()).then(j=>console.log("telegram send", j)).catch(e=>console.error(e));
+  } else {
+    // fallback: open share link (user can press send) - useful for testing
+    window.open(`https://t.me/share/url?url=&text=${encodeURIComponent(`New Withdraw\nID: ${id}\nAmount: ${amount}`)}`, "_blank");
+  }
+
+  // update status after 1 minute
+  setTimeout(()=>{
+    const s2 = loadState();
+    const target = s2.withdraws.find(x=> x.time === w.time && x.amount === w.amount && x.id === w.id);
+    if(target){
+      target.status = "Complete";
+      saveState(s2);
+      render();
+    }
+  }, 60000);
+
+  alert("Withdraw requested and sent to admin (or share opened).");
+});
+
+/* ==================== Midnight reset for today counter ==================== */
+(function scheduleMidnightReset(){
+  const now = new Date();
+  const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1,0,0,2) - now;
+  setTimeout(()=>{
+    const s = loadState();
+    s.todayAds = 0;
+    s.todayDate = nowDateStr();
+    saveState(s);
+    render();
+    scheduleMidnightReset();
+  }, msUntilMidnight);
+})();
+
+/* ==================== Init ==================== */
+render();
+</script>
+</body>
+</html>
